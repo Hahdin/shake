@@ -16,4 +16,4 @@ This uses [OpenLayers](http://openlayers.org) to map data obtained from the [USG
   - [Watercolor](http://{a-c}.tile.stamen.com/watercolor/{z}/{x}/{y}.png)
   
 
->> **NOTE:** *Although Redux is part of the install, t is not current in use, but intended for some future enhancements*
+>> **NOTE:** *Although Redux is part of the install, it is not current in use, but intended for some future enhancements*
