@@ -21,8 +21,9 @@ const MyNavBar = ({ ...props }) => {
             <NavItem eventKey={1} > Map </NavItem>
           </LinkContainer>
         </Nav> */}
-        <Navbar.Text pullRight style={{ fontSize: '12px', marginRight: '10px' }}>
-          {'Welcome'}
+        <Navbar.Text pullLeft style={{ fontSize: '12px', marginRight: '10px' }}>
+        <a href = 'https://github.com/Hahdin/shake' target='blank'>View the code on Github</a>
+          
         </Navbar.Text>
       </Navbar.Collapse>
     </Navbar>
