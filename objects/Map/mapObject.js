@@ -199,9 +199,6 @@ export const mapObject = {
       // ctx.fill();
       // ctx.stroke();
 
-
-
-
       style = new Style({
         image: new Icon({
           img: canvas,
