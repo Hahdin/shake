@@ -14,6 +14,17 @@ This uses [OpenLayers](http://openlayers.org) to map data obtained from the [USG
   - [Regular](https://maps-cdn.salesboard.biz/styles/klokantech-3d-gl-style/{z}/{x}/{y}.png)
   - [Black&white](http://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png)
   - [Watercolor](http://{a-c}.tile.stamen.com/watercolor/{z}/{x}/{y}.png)
-  
 
+### Show Labels
+  Toggle the labels.
+
+## Legend
+  The numerical display provides the following informaion:
+  
+  - **Magnitude**: both the text and size of circle.
+  - **Age**: Fades from opaque Red to transparent Blue
+  - **Depth**: Size and opacity of the circle border, 1 px = 100 miles
+
+  
+---
 >> **NOTE:** *Although Redux is part of the install, it is not current in use, but intended for some future enhancements*

@@ -4,11 +4,9 @@ import GeoJSON from 'ol/format/GeoJSON.js';
 import { OSM, Vector as VectorSource } from 'ol/source.js';
 import Circle from 'ol/geom/Circle.js';
 import { Vector as VectorLayer, Heatmap as HeatmapLayer } from 'ol/layer.js';
-import Feature from 'ol/Feature.js';
 import { transform } from 'ol/proj.js';
-import styles from './mapStyles'
-// import { ATTRIBUTION } from 'ol/source/OSM.js';
-// import XYZ from 'ol/source/XYZ.js';
+import { toContext } from 'ol/render.js';
+import { Circle as CircleStyle, Fill, Stroke, Style, Text, Icon } from 'ol/style.js';
 export const mapObject = {
   rawData: null,
   heatmap: false,
@@ -16,6 +14,8 @@ export const mapObject = {
   type: '0',
   myLayer: null,
   sourceMap: '0',
+  styleCache: {},
+  showLabels: true,
   async create({ ...args }) {
     this.rawData = await this.loadInfo()
     this.updateCoords()
@@ -42,58 +42,46 @@ export const mapObject = {
     if (!result.ok) return Promise.reject(result)
     let jsResult = await result.json().catch(reason => { return reason })
     if (!jsResult) return 0
-    this.rawData = jsResult
+    //Fix up data
+    let fixed = {
+      features:[],
+      bbox: [...jsResult.bbox],
+      metadata: {...jsResult.metadata},
+      type: jsResult.type,
+    }
+    jsResult.features.forEach(feature =>{
+      if (parseFloat(feature.properties.mag ) < 0)   return
+      fixed.features = fixed.features.concat(feature)
+    })
+    this.rawData = fixed
     return jsResult
   },
   getVectorSource() {
     return new VectorSource({
-      features: (new GeoJSON()).readFeatures(this.rawData)
+      features: (new GeoJSON()).readFeatures(this.rawData),
+      format: new GeoJSON({
+        extractStyles: false
+      })
     })
-  },
-  addMagnitudeFeature(source){
-    this.rawData.features.forEach(feature => {
-      let coords = feature.geometry.coordinates
-      if (coords) {
-        let mag = parseFloat(feature.properties.mag)
-        mag = mag < 1 ? mag * 10000 : mag < 2 ? mag * 20000 : mag < 3 ? mag * 30000 : mag < 4 ? mag * 40000 : mag < 5 ? mag * 50000 : mag < 6 ? mag * 60000 : mag * 100000
-        let cir = new Circle(coords, mag)
-        let feat = new Feature(cir)
-        source.addFeature(feat)
-      }
-    })
-
   },
   getVectorLayer() {
     let source = this.getVectorSource()
-    this.addMagnitudeFeature(source)
     return new VectorLayer({
       source: source,
-      style: this.styleFunction,
+      style: this.styleEarthquakes.bind(this),
     })
   },
   getHeatVectorLayer() {
     let source = this.getVectorSource()
     return new HeatmapLayer({
       source: source,
-      style: this.styleFunction,
       blur: 30,
       radius: 15,
     })
   },
-  // openSeaMapLayer() {
-  //   return new TileLayer({
-  //     source: new OSM({
-  //       attributions: [
-  //         'All maps © <a href="http://www.openseamap.org/">OpenSeaMap</a>',
-  //         ATTRIBUTION
-  //       ],
-  //       opaque: false,
-  //       url: 'https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png'
-  //     })
-  //   });
-  // },
   async switchData(type) {//0 - hour, 1-day, 2-week
     this.type = type
+    this.styleCache = []
     return await this.refresh()
   },
   removeLayer(type) {
@@ -161,9 +149,83 @@ export const mapObject = {
     })
     return this.myMap
   },
-  styleFunction(feature) {
-    styles.Point.getText().setText(String(feature.get('mag')))
-    return styles[feature.getGeometry().getType()];
+  styleEarthquakes(feature) {
+    let geo = feature.get('geometry')
+    let depth = geo.flatCoordinates[2]
+    //normalize at 100 miles
+    let size = depth / 75
+    let mag = parseFloat(feature.get('mag'))
+    let time = parseFloat(feature.get('time'))
+    let _date = new Date(time)
+    let mins = (Date.now() - _date.getTime()) / 60000
+    let maxTime = this.type === '0' ? 60 : this.type === '1' ? 60 * 24 : 60 * 24 * 7
+    let opac = 1 - (mins / maxTime)
+    mag = mag < 1 ? mag * 10
+      : mag < 2 ? mag * 12
+        : mag < 3 ? mag * 14
+          : mag < 4 ? mag * 16
+            : mag < 5 ? mag * 17
+              : mag < 6 ? mag * 18
+                : mag * 20
+    if (mag <= 2) mag = 2
+    mag += size
+    let style = this.styleCache[mag]
+    let color = `rgba(${Math.round((255) * opac)},${0},${Math.round(255 * (1 - opac))},${opac})`
+    let strokecolor = `rgba(${0},${Math.round(255 * (1 - (opac / 2)))},${Math.round((255) * (opac / 2))},${1})`
+    if (!style) {
+      let canvas = (document.createElement('canvas'));
+
+      /**
+       * This ...
+       */
+      let vectorContext = toContext((canvas.getContext('2d')),
+        { size: [mag, mag], pixelRatio: 1 });
+      vectorContext.setStyle(new Style({
+        fill: new Fill({ color: color }),
+        stroke: new Stroke({ color: strokecolor, width: Math.round(size) })
+      }));
+      vectorContext.drawGeometry(new Circle([mag / 2, mag / 2], (mag / 2) - (size * 2)))
+
+      /**
+       * Is exactly the same as this...
+       */
+
+      // let ctx = canvas.getContext('2d')
+      // ctx.fillStyle = color
+      // ctx.strokeStyle = strokecolor
+      // ctx.lineWidth = Math.round(size) 
+      // ctx.beginPath()
+      // ctx.arc(mag / 2, mag / 2, (mag / 2) - (size * 2), Math.PI * 2, false)
+      // ctx.fill();
+      // ctx.stroke();
+
+
+
+
+      style = new Style({
+        image: new Icon({
+          img: canvas,
+          imgSize: [mag, mag],
+        }),
+        text: new Text({
+          font: '15px Arial,sans-serif',
+          overflow: true,
+          fill: new Fill({
+            color: '#000'
+          }),
+          stroke: new Stroke({
+            color: '#fff',
+            width: 1
+          })
+        })
+      })
+      let text = `Mag: ${String(feature.get('mag'))} (depth ${depth})`
+      if (this.showLabels) {
+        style.getText().setText(text)
+      }
+      this.styleCache[mag] = style;
+    }
+    return style
   },
 }
 export default mapObject

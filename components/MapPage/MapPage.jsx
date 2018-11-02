@@ -12,6 +12,7 @@ export class MapPage extends Component {
       heatmap: false,
       type: '0',// hour, day, week
       sourceMap: '1', 
+      showLabels: true,
     }
   }
   async componentDidMount() {
@@ -29,6 +30,7 @@ export class MapPage extends Component {
   async getMapObject() {
     let map = await mapObject.create()
     map.heatmap = this.state.heatmap
+    map.showLabels = this.state.showLabels
     map.myMap = map.getMapObject()
     return map
   }
@@ -42,6 +44,7 @@ export class MapPage extends Component {
       heatmap: this.state.heatmap,
       type: this.state.type,
       sourceMap: this.state.sourceMap,
+      showLabels: this.state.showLabels,
     }
     this.state.gui.add(controller, 'heatmap', 0, 1).name('Use Heatmap').onChange(async (value) => {
       if (this.state.heatmap === value) return
@@ -74,7 +77,17 @@ export class MapPage extends Component {
         sourceMap: value,
       })
     })
-  }
+    this.state.gui.add(controller, 'showLabels', 0, 1).name('Show Labels').onChange(async (value) => {
+      if (this.state.showLabels === value) return
+      this.state.showLabels = value
+      this.state.map.showLabels = value
+      await this.state.map.switchData(this.state.map.type)
+      this.state.map.switchLayer('VECTOR')
+      this.setState({
+        showLabels: value,
+      })
+    })
+}
   start() {
     this.timer = setInterval(() => {
       this.state.map.loadInfo()
