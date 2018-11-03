@@ -17,13 +17,15 @@ export const mapObject = {
   styleCache: {},
   showLabels: true,
   async create({ ...args }) {
-    this.rawData = await this.loadInfo()
+    try{this.rawData = await this.loadInfo()
     this.updateCoords()
-    return Object.assign(Object.create(this), { ...args })
+    return Object.assign(Object.create(this), { ...args })}
+    catch(e){ console.log(e)}
   },
   async refresh() {
-    this.rawData = await this.loadInfo()
-    this.updateCoords()
+    try{this.rawData = await this.loadInfo()
+    this.updateCoords()}
+    catch(e){ console.log(e)}
   },
   updateCoords() {
     //transform from lat/lon to UTM
@@ -35,7 +37,7 @@ export const mapObject = {
     return transform(coord, 'EPSG:4326', 'EPSG:3857');
   },
   async loadInfo() {
-    let path = this.type === '0' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson'
+    try{let path = this.type === '0' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson'
       : this.type === '1' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
         : 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson'
     let result = await window.fetch(path).catch(reason => { return reason })
@@ -54,7 +56,8 @@ export const mapObject = {
       fixed.features = fixed.features.concat(feature)
     })
     this.rawData = fixed
-    return jsResult
+    return jsResult}
+    catch(e){ console.log(e)}
   },
   getVectorSource() {
     return new VectorSource({
@@ -80,9 +83,10 @@ export const mapObject = {
     })
   },
   async switchData(type) {//0 - hour, 1-day, 2-week
-    this.type = type
+    try{this.type = type
     this.styleCache = []
-    return await this.refresh()
+    return await this.refresh()}
+    catch(e){ console.log(e)}
   },
   removeLayer(type) {
     let removed = false

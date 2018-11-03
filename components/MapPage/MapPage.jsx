@@ -16,7 +16,7 @@ export class MapPage extends Component {
     }
   }
   async componentDidMount() {
-    let map = await this.getMapObject()
+    try{let map = await this.getMapObject()
     this.setState({
       map: map,
       loading: false,
@@ -25,14 +25,16 @@ export class MapPage extends Component {
       heatmap: false,
     })
     this.addGui()
-    this.start()
+    this.start()}
+    catch(e){ console.log(e)}
   }
   async getMapObject() {
-    let map = await mapObject.create()
+    try{let map = await mapObject.create()
     map.heatmap = this.state.heatmap
     map.showLabels = this.state.showLabels
     map.myMap = map.getMapObject()
-    return map
+    return map}
+    catch(e){ console.log(e)}
   }
   addGui() {
     if (this.state.gui) {
