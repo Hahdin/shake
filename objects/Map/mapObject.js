@@ -20,12 +20,12 @@ export const mapObject = {
     try{this.rawData = await this.loadInfo()
     this.updateCoords()
     return Object.assign(Object.create(this), { ...args })}
-    catch(e){ console.log(e)}
+    catch(e){ Promise.reject(e)}
   },
   async refresh() {
     try{this.rawData = await this.loadInfo()
     this.updateCoords()}
-    catch(e){ console.log(e)}
+    catch(e){ Promise.reject(e)}
   },
   updateCoords() {
     //transform from lat/lon to UTM
@@ -57,7 +57,7 @@ export const mapObject = {
     })
     this.rawData = fixed
     return jsResult}
-    catch(e){ console.log(e)}
+    catch(e){ Promise.reject(e)}
   },
   getVectorSource() {
     return new VectorSource({
@@ -86,7 +86,7 @@ export const mapObject = {
     try{this.type = type
     this.styleCache = []
     return await this.refresh()}
-    catch(e){ console.log(e)}
+    catch(e){ Promise.reject(e)}
   },
   removeLayer(type) {
     let removed = false

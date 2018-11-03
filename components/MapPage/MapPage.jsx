@@ -26,7 +26,7 @@ export class MapPage extends Component {
     })
     this.addGui()
     this.start()}
-    catch(e){ console.log(e)}
+    catch(e){ Promise.reject(e)}
   }
   async getMapObject() {
     try{let map = await mapObject.create()
@@ -34,7 +34,7 @@ export class MapPage extends Component {
     map.showLabels = this.state.showLabels
     map.myMap = map.getMapObject()
     return map}
-    catch(e){ console.log(e)}
+    catch(e){ Promise.reject(e)}
   }
   addGui() {
     if (this.state.gui) {
@@ -49,17 +49,18 @@ export class MapPage extends Component {
       showLabels: this.state.showLabels,
     }
     this.state.gui.add(controller, 'heatmap', 0, 1).name('Use Heatmap').onChange(async (value) => {
-      if (this.state.heatmap === value) return
+      try{if (this.state.heatmap === value) return
       this.state.heatmap = value
       this.state.map.heatmap = value
       await this.state.map.switchData(this.state.type)
       this.state.map.switchLayer('VECTOR')
       this.setState({
         heatmap: value,
-      })
+      })}
+      catch(e){ Promise.reject(e)}
     })
     this.state.gui.add(controller, 'type', { hour: 0, day: 1, week: 2 }).name('Type').onChange(async (value) => {
-      if (this.state.type === value) return
+      try{if (this.state.type === value) return
       this.state.type = value
       await this.state.map.switchData(value)
       this.state.map.switchLayer('VECTOR')
@@ -68,7 +69,8 @@ export class MapPage extends Component {
       this.setState({
         type: value,
         lastRefresh: Date(),
-      })
+      })}
+      catch(e){ Promise.reject(e)}
     })
     this.state.gui.add(controller, 'sourceMap', { Wiki: 0, Regular: 1, 'Black&white': 2, Watercolor: 3 }).name('Source Map').onChange((value) => {
       if (this.state.sourceMap === value) return
@@ -80,14 +82,15 @@ export class MapPage extends Component {
       })
     })
     this.state.gui.add(controller, 'showLabels', 0, 1).name('Show Labels').onChange(async (value) => {
-      if (this.state.showLabels === value) return
+      try{if (this.state.showLabels === value) return
       this.state.showLabels = value
       this.state.map.showLabels = value
       await this.state.map.switchData(this.state.map.type)
       this.state.map.switchLayer('VECTOR')
       this.setState({
         showLabels: value,
-      })
+      })}
+      catch(e){ Promise.reject(e)}
     })
 }
   start() {
