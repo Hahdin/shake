@@ -2,6 +2,7 @@ import { Map, View } from 'ol';
 import TileLayer from 'ol/layer/Tile';
 import GeoJSON from 'ol/format/GeoJSON.js';
 import { OSM, Vector as VectorSource } from 'ol/source.js';
+import { ATTRIBUTION } from 'ol/source/OSM.js';
 import Circle from 'ol/geom/Circle.js';
 import { Vector as VectorLayer, Heatmap as HeatmapLayer } from 'ol/layer.js';
 import { transform } from 'ol/proj.js';
@@ -13,9 +14,13 @@ export const mapObject = {
   myMap: null,
   type: '0',
   myLayer: null,
-  sourceMap: '0',
+  sourceMap: '2',
   styleCache: {},
-  showLabels: true,
+  showLabels: false,
+  lens: null,
+  container: null,
+  mousePos: null,
+  spyTerrain: false,
   async create({ ...args }) {
     try{this.rawData = await this.loadInfo()
     this.updateCoords()
@@ -36,6 +41,7 @@ export const mapObject = {
   _transform(coord) {
     return transform(coord, 'EPSG:4326', 'EPSG:3857');
   },
+  
   async loadInfo() {
     try{let path = this.type === '0' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson'
       : this.type === '1' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
@@ -135,12 +141,73 @@ export const mapObject = {
       this.addLayer(type)
     }
   },
+  mouseMoveEvent(event){
+    this.mousePos = this.myMap.getEventPixel(event);
+    this.myMap.render();
+},
+  mouseOutEvent(event){
+    this.mousePos = null;
+    this.myMap.render();
+},
+  updateContainer(){
+    this.container.addEventListener('mousemove', this.mouseMoveEvent);
+    this.container.addEventListener('mouseout', this.mouseOutEvent);
+  },
+  clipLens(event){
+    let radius =  this.spyTerrain ? 75 : 0 
+    let ctx = event.context;
+    let pixelRatio = event.frameState.pixelRatio;
+    ctx.save();
+    ctx.beginPath();
+    if (this.mousePos) {
+      ctx.arc(this.mousePos[0] * pixelRatio, this.mousePos[1] * pixelRatio,
+        radius * pixelRatio, 0, 2 * Math.PI);
+      ctx.lineWidth = 5 * pixelRatio;
+      ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+      ctx.stroke();
+    }
+    ctx.clip();
+  },
+  postClip(event){
+    event.context.restore();
+  },
   getMapObject() {
+    this.container = document.getElementById('map');
+    this.updateContainer = this.updateContainer.bind(this)
+    this.clipLens = this.clipLens.bind(this)
+    this.postClip = this.postClip.bind(this)
+    this.mouseMoveEvent = this.mouseMoveEvent.bind(this)
+    this.mouseOutEvent = this.mouseOutEvent.bind(this)
     let center = [-119, 34]
-    this.myLayer = new TileLayer({ source: new OSM({ url: 'https://maps-cdn.salesboard.biz/styles/klokantech-3d-gl-style/{z}/{x}/{y}.png' }) })
+    this.myLayer = new TileLayer({ source: new OSM({ 
+      // attributions: [
+      //   'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
+      //   ATTRIBUTION
+      // ],
+      // url: 'http://tile.stamen.com/toner/{z}/{x}/{y}.png' 
+      url: 'http://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png' 
+      }) 
+    })
+    
+    this.lens = new TileLayer({ source: new OSM({ 
+      attributions: [
+        'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
+        ATTRIBUTION
+      ],
+      url: 'http://tile.stamen.com/terrain/{z}/{x}/{y}.jpg' 
+      }) 
+    })
+    this.lens.on('precompose', (event) => {
+      this.clipLens(event)
+    })
+    this.lens.on('postcompose', (event) => {
+      this.postClip(event)
+    })
+    this.updateContainer()
+
     let layers = [
-      new TileLayer({ source: new OSM() }),
       this.myLayer,
+      this.lens,
       (this.heatmap) ? this.getHeatVectorLayer() : this.getVectorLayer(),
     ]
     this.myMap = new Map({
@@ -153,11 +220,14 @@ export const mapObject = {
     })
     return this.myMap
   },
+  toggleSpy(value){
+    this.spyTerrain = value
+  },
   styleEarthquakes(feature) {
     let geo = feature.get('geometry')
     let depth = geo.flatCoordinates[2]
-    //normalize at 100 miles
-    let size = depth / 75
+    //normalize
+    let size = depth / 100
     let mag = parseFloat(feature.get('mag'))
     let time = parseFloat(feature.get('time'))
     let _date = new Date(time)

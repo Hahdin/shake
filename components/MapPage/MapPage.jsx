@@ -11,8 +11,9 @@ export class MapPage extends Component {
       gui: new dat.GUI({ width: 400 }),
       heatmap: false,
       type: '0',// hour, day, week
-      sourceMap: '1', 
-      showLabels: true,
+      sourceMap: '2', 
+      showLabels: false,
+      spyTerrain: false,
     }
   }
   async componentDidMount() {
@@ -47,6 +48,7 @@ export class MapPage extends Component {
       type: this.state.type,
       sourceMap: this.state.sourceMap,
       showLabels: this.state.showLabels,
+      spyTerrain: this.state.spyTerrain,
     }
     this.state.gui.add(controller, 'heatmap', 0, 1).name('Use Heatmap').onChange(async (value) => {
       try{if (this.state.heatmap === value) return
@@ -89,6 +91,16 @@ export class MapPage extends Component {
       this.state.map.switchLayer('VECTOR')
       this.setState({
         showLabels: value,
+      })}
+      catch(e){ Promise.reject(e)}
+    })
+    this.state.gui.add(controller, 'spyTerrain', 0, 1).name('Spy Terrain').onChange( (value) => {
+      try{if (this.state.spyTerrain === value) return
+      this.state.spyTerrain = value
+      //this.state.map.spyTerrain = value
+      this.state.map.toggleSpy(value)
+      this.setState({
+        spyTerrain: value,
       })}
       catch(e){ Promise.reject(e)}
     })
