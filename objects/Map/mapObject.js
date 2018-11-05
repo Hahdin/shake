@@ -230,6 +230,7 @@ export const mapObject = {
     let size = depth / 100
     let mag = parseFloat(feature.get('mag'))
     let time = parseFloat(feature.get('time'))
+    let tsunami = parseInt(feature.get('tsunami'))
     let _date = new Date(time)
     let mins = (Date.now() - _date.getTime()) / 60000
     let maxTime = this.type === '0' ? 60 : this.type === '1' ? 60 * 24 : 60 * 24 * 7
@@ -252,26 +253,34 @@ export const mapObject = {
       /**
        * This ...
        */
-      let vectorContext = toContext((canvas.getContext('2d')),
-        { size: [mag, mag], pixelRatio: 1 });
-      vectorContext.setStyle(new Style({
-        fill: new Fill({ color: color }),
-        stroke: new Stroke({ color: strokecolor, width: Math.round(size) })
-      }));
-      vectorContext.drawGeometry(new Circle([mag / 2, mag / 2], (mag / 2) - (size * 2)))
+      // let vectorContext = toContext((canvas.getContext('2d')),
+      //   { size: [mag, mag], pixelRatio: 1 });
+      // vectorContext.setStyle(new Style({
+      //   fill: new Fill({ color: color }),
+      //   stroke: new Stroke({ color: strokecolor, width: Math.round(size) })
+      // }));
+      // vectorContext.drawGeometry(new Circle([mag / 2, mag / 2], (mag / 2) - (size * 2)))
 
       /**
        * Is exactly the same as this...
        */
 
-      // let ctx = canvas.getContext('2d')
-      // ctx.fillStyle = color
-      // ctx.strokeStyle = strokecolor
-      // ctx.lineWidth = Math.round(size) 
-      // ctx.beginPath()
-      // ctx.arc(mag / 2, mag / 2, (mag / 2) - (size * 2), Math.PI * 2, false)
-      // ctx.fill();
-      // ctx.stroke();
+      let ctx = canvas.getContext('2d')
+      canvas.width = mag
+      canvas.height = mag
+      ctx.fillStyle = color
+      ctx.strokeStyle = strokecolor
+      ctx.lineWidth = size 
+      ctx.beginPath()
+      ctx.arc(mag / 2, mag / 2, (mag / 2) - (size * 2), Math.PI * 2, false)
+      ctx.fill();
+      ctx.stroke();
+
+      if ( tsunami === 1){
+        ctx.fillStyle = `rgba(${255},${255},${0},${opac})`
+        this.drawRect(ctx,(mag / 2) - 10, (mag / 2) - 10, 20, 20, true, false  )
+      }
+
 
       style = new Style({
         image: new Icon({
@@ -298,5 +307,23 @@ export const mapObject = {
     }
     return style
   },
+  //helpers
+  drawRect(ctx, x, y, w, h, fill = true, line = true) {
+    if (line) ctx.strokeRect(x, y, w, h)
+    if (fill) ctx.fillRect(x, y, w, h)
+  },
+  lineTo(ctx, x1, y1, x2, y2, solid = false) {
+    ctx.beginPath()
+    ctx.moveTo(x1, y1)
+    ctx.lineTo(x2, y2)
+    ctx.stroke()
+  },
+  drawSphere(ctx, point, radius) {
+    ctx.beginPath()
+    ctx.arc(point.x, point.y, radius, Math.PI * 2, false)
+    ctx.fill();
+    ctx.stroke();
+  },
+
 }
 export default mapObject

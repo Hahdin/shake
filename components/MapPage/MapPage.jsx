@@ -121,15 +121,52 @@ export class MapPage extends Component {
   render() {
     if (this.state.loading)
       return (<div>loading... </div>)
+    let redStyle = {
+      color: 'red',
+      backgroundColor: 'rgba(0,0,0, 1)',
+      textShadow: '1px 1px 1px white',
+    }
+    let blueStyle = {
+      color: 'rgba(0,0,255, 1)',
+      backgroundColor: 'rgba(0,0,0, 1)',
+      textShadow: '1px 1px 1px white',
+    }
+    let greenStyle = {
+      color: 'rgba(0,255,0, 1)',
+      backgroundColor: 'rgba(0,0,0, 1)',
+      textShadow: '1px 1px 1px white',
+    }
+    let yellowStyle ={
+      color: 'rgba(255,255,0, 0.9)',
+      backgroundColor: 'rgba(0,0,0, 1)',
+      textShadow: '1px 1px 1px white',
+    }
+    let divStyle = {
+      //border: '5px solid black',
+      padding: '5px',
+      boxShadow: '2px 2px 4px black',
+      color: 'white',
+      textShadow: '1px 1px 1px grey',
+      fontSize: '14px',
+      backgroundColor: 'rgba(0,0,0, 1)',
+    }
     return (
-      <div style={{ fontSize: '10px', color: 'black', textShadow: '1px 1px 3px yellow' }}>
-        <style type='text/css'>{`
-            select {
+      <div >
+        <div style={{ fontSize: '10px', color: 'black', textShadow: '1px 1px 3px yellow' }}>
+          <style type='text/css'>
+          {`select {
               color: blue;
             }
-        `}
-        </style>
-        last update: {this.state.lastRefresh}
+            `}
+          </style>
+          last update: {this.state.lastRefresh}
+        </div>
+        <div style={divStyle}>
+        Circle size is magnitude, Age color fades from opaque 
+        <span style={redStyle}> Red</span> to transparent 
+        <span style={blueStyle}> Blue</span>. Tsunami warnings are <span style={yellowStyle}>Yellow</span> squares. 
+        Depth is the <span style={greenStyle}>Green</span> outline, 1px/100miles.
+        </div>
       </div>
     )
   }
