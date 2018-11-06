@@ -24,8 +24,8 @@ export const mapObject = {
   async create({ ...args }) {
     try{this.rawData = await this.loadInfo()
     this.updateCoords()
-    return Object.assign(Object.create(this), { ...args })}
-    catch(e){ Promise.reject(e)}
+      return Object.assign({}, this, { ...args })
+    }catch(e){ Promise.reject(e)}
   },
   async refresh() {
     try{this.rawData = await this.loadInfo()
