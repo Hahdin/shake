@@ -16,7 +16,13 @@ This uses [OpenLayers](http://openlayers.org) to map data obtained from the [USG
   - [Watercolor](http://{a-c}.tile.stamen.com/watercolor/{z}/{x}/{y}.png)
 
 ### Show Labels
+
   Toggle the labels.
+
+### Spy Terrain
+  Toggle a Spy glass to reveal terrain below.
+### Show Gauge
+  Toggle a gauge display of Magnitude. Gauge from  [Gauge.js](http://bernii.github.io/gauge.js/)
 
 ## Legend
   The numerical display provides the following informaion:
