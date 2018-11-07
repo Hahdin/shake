@@ -238,18 +238,8 @@ export const mapObject = {
   },
   styleGauge(feature) {
     //test gauge
-    let geo = feature.get('geometry')
-    let depth = geo.flatCoordinates[2]
-    //normalize
-    let size = depth / 100
     let mag = parseFloat(feature.get('mag'))
     mag = mag > 0 ? mag : 0
-    let time = parseFloat(feature.get('time'))
-    let tsunami = parseInt(feature.get('tsunami'))
-    let _date = new Date(time)
-    let mins = (Date.now() - _date.getTime()) / 60000
-    let maxTime = this.type === '0' ? 60 : this.type === '1' ? 60 * 24 : 60 * 24 * 7
-    let opac = 1 - (mins / maxTime)
     let canvas = (document.createElement('canvas'));
     let style = this.styleCache[mag]
     if (this.styleCache[mag])
