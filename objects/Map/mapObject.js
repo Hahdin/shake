@@ -8,6 +8,7 @@ import { Vector as VectorLayer, Heatmap as HeatmapLayer } from 'ol/layer.js';
 import { transform } from 'ol/proj.js';
 import { toContext } from 'ol/render.js';
 import { Circle as CircleStyle, Fill, Stroke, Style, Text, Icon } from 'ol/style.js';
+import { Gauge, Donut } from '../../helpers/gauge'
 export const mapObject = {
   rawData: null,
   heatmap: false,
@@ -21,16 +22,22 @@ export const mapObject = {
   container: null,
   mousePos: null,
   spyTerrain: false,
+  showGauge: false,
+
   async create({ ...args }) {
-    try{this.rawData = await this.loadInfo()
-    this.updateCoords()
+
+    try {
+    this.rawData = await this.loadInfo()
+      this.updateCoords()
       return Object.assign({}, this, { ...args })
-    }catch(e){ Promise.reject(e)}
+    } catch (e) { Promise.reject(e) }
   },
   async refresh() {
-    try{this.rawData = await this.loadInfo()
-    this.updateCoords()}
-    catch(e){ Promise.reject(e)}
+    try {
+    this.rawData = await this.loadInfo()
+      this.updateCoords()
+    }
+    catch (e) { Promise.reject(e) }
   },
   updateCoords() {
     //transform from lat/lon to UTM
@@ -41,29 +48,31 @@ export const mapObject = {
   _transform(coord) {
     return transform(coord, 'EPSG:4326', 'EPSG:3857');
   },
-  
+
   async loadInfo() {
-    try{let path = this.type === '0' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson'
-      : this.type === '1' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
-        : 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson'
-    let result = await window.fetch(path).catch(reason => { return reason })
-    if (!result.ok) return Promise.reject(result)
-    let jsResult = await result.json().catch(reason => { return reason })
-    if (!jsResult) return 0
-    //Fix up data
-    let fixed = {
-      features:[],
-      bbox: [...jsResult.bbox],
-      metadata: {...jsResult.metadata},
-      type: jsResult.type,
+    try {
+      let path = this.type === '0' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson'
+        : this.type === '1' ? 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson'
+          : 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson'
+      let result = await window.fetch(path).catch(reason => { return reason })
+      if (!result.ok) return Promise.reject(result)
+      let jsResult = await result.json().catch(reason => { return reason })
+      if (!jsResult) return 0
+      //Fix up data
+      let fixed = {
+        features: [],
+        bbox: [...jsResult.bbox],
+        metadata: { ...jsResult.metadata },
+        type: jsResult.type,
+      }
+      jsResult.features.forEach(feature => {
+        if (parseFloat(feature.properties.mag) < 0) return
+        fixed.features = fixed.features.concat(feature)
+      })
+      this.rawData = fixed
+      return jsResult
     }
-    jsResult.features.forEach(feature =>{
-      if (parseFloat(feature.properties.mag ) < 0)   return
-      fixed.features = fixed.features.concat(feature)
-    })
-    this.rawData = fixed
-    return jsResult}
-    catch(e){ Promise.reject(e)}
+    catch (e) { Promise.reject(e) }
   },
   getVectorSource() {
     return new VectorSource({
@@ -77,7 +86,7 @@ export const mapObject = {
     let source = this.getVectorSource()
     return new VectorLayer({
       source: source,
-      style: this.styleEarthquakes.bind(this),
+      style: this.showGauge ?  this.styleGauge.bind(this) : this.styleEarthquakes.bind(this),
     })
   },
   getHeatVectorLayer() {
@@ -89,10 +98,12 @@ export const mapObject = {
     })
   },
   async switchData(type) {//0 - hour, 1-day, 2-week
-    try{this.type = type
-    this.styleCache = []
-    return await this.refresh()}
-    catch(e){ Promise.reject(e)}
+    try {
+    this.type = type
+      this.styleCache = []
+      return await this.refresh()
+    }
+    catch (e) { Promise.reject(e) }
   },
   removeLayer(type) {
     let removed = false
@@ -141,20 +152,20 @@ export const mapObject = {
       this.addLayer(type)
     }
   },
-  mouseMoveEvent(event){
+  mouseMoveEvent(event) {
     this.mousePos = this.myMap.getEventPixel(event);
     this.myMap.render();
-},
-  mouseOutEvent(event){
+  },
+  mouseOutEvent(event) {
     this.mousePos = null;
     this.myMap.render();
-},
-  updateContainer(){
+  },
+  updateContainer() {
     this.container.addEventListener('mousemove', this.mouseMoveEvent);
     this.container.addEventListener('mouseout', this.mouseOutEvent);
   },
-  clipLens(event){
-    let radius =  this.spyTerrain ? 75 : 0 
+  clipLens(event) {
+    let radius = this.spyTerrain ? 75 : 0
     let ctx = event.context;
     let pixelRatio = event.frameState.pixelRatio;
     ctx.save();
@@ -168,7 +179,7 @@ export const mapObject = {
     }
     ctx.clip();
   },
-  postClip(event){
+  postClip(event) {
     event.context.restore();
   },
   getMapObject() {
@@ -179,23 +190,25 @@ export const mapObject = {
     this.mouseMoveEvent = this.mouseMoveEvent.bind(this)
     this.mouseOutEvent = this.mouseOutEvent.bind(this)
     let center = [-119, 34]
-    this.myLayer = new TileLayer({ source: new OSM({ 
-      // attributions: [
-      //   'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
-      //   ATTRIBUTION
-      // ],
-      // url: 'http://tile.stamen.com/toner/{z}/{x}/{y}.png' 
-      url: 'http://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png' 
-      }) 
+    let attr = { }
+    this.myLayer = new TileLayer({
+      source: new OSM({
+        attributions: [
+          'Gauges by <a href="http://bernii.github.io/gauge.js/">gauge.js</a>.',
+            ATTRIBUTION
+        ],
+        url: 'http://{a-c}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
+        
+      })
     })
-    
-    this.lens = new TileLayer({ source: new OSM({ 
-      attributions: [
-        'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
-        ATTRIBUTION
-      ],
-      url: 'http://tile.stamen.com/terrain/{z}/{x}/{y}.jpg' 
-      }) 
+    this.lens = new TileLayer({
+      source: new OSM({
+        attributions: [
+          'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://www.openstreetmap.org/copyright">ODbL</a>.',
+          ATTRIBUTION,
+        ],
+        url: 'http://tile.stamen.com/terrain/{z}/{x}/{y}.jpg'
+      })
     })
     this.lens.on('precompose', (event) => {
       this.clipLens(event)
@@ -220,8 +233,67 @@ export const mapObject = {
     })
     return this.myMap
   },
-  toggleSpy(value){
+  toggleSpy(value) {
     this.spyTerrain = value
+  },
+  styleGauge(feature) {
+    //test gauge
+    let geo = feature.get('geometry')
+    let depth = geo.flatCoordinates[2]
+    //normalize
+    let size = depth / 100
+    let mag = parseFloat(feature.get('mag'))
+    mag = mag > 0 ? mag : 0
+    let time = parseFloat(feature.get('time'))
+    let tsunami = parseInt(feature.get('tsunami'))
+    let _date = new Date(time)
+    let mins = (Date.now() - _date.getTime()) / 60000
+    let maxTime = this.type === '0' ? 60 : this.type === '1' ? 60 * 24 : 60 * 24 * 7
+    let opac = 1 - (mins / maxTime)
+    let canvas = (document.createElement('canvas'));
+    let style = this.styleCache[mag]
+    if (this.styleCache[mag])
+      return style
+
+    canvas.width = 125
+    canvas.height = 125
+    var opts = {
+      lines: 12,
+      angle: .05, // The span of the gauge arc
+      lineWidth: .08, // The line thickness
+      radiusScale: 0.2, // Relative radius
+      pointer: {
+        length: 0.6, // // Relative to gauge radius
+        strokeWidth: 0.035, // The thickness
+        color: '#000000' // Fill color
+      },
+      limitMax: false,     // If false, max value increases automatically if value > maxValue
+      limitMin: false,     // If true, the min value of the gauge will be fixed
+      percentColors: [[0.0, "#a9d70b" ], [0.50, "#f9c802"], [1.0, "#ff0000"]], // !!!!
+      strokeColor: '#E0E0E0',
+      generateGradient: true,
+      staticLabels: {
+        font: "9px sans-serif",  // Specifies font
+        labels: [0, 2, 4, 6, 8, 10],  // Print labels at these values
+        color: "#000000",  // Optional: Label text color
+        fractionDigits: 0  // Optional: Numerical precision. 0=round off.
+      },
+      highDpiSupport: true,     // High resolution support
+    };
+    var target = canvas; // your canvas element
+    var gauge = new Gauge(target).setOptions(opts); // create sexy gauge!
+    gauge.maxValue = 9.0; // set max gauge value
+    gauge.setMinValue(0);  // Prefer setter over gauge.minValue = 0
+    gauge.animationSpeed = 32; // set animation speed (32 is default value)
+    gauge.set(mag); // set actual value
+    style = new Style({
+      image: new Icon({
+        img: canvas,
+        imgSize: [150, 150],
+      })
+    })
+    this.styleCache[mag] = style
+    return style
   },
   styleEarthquakes(feature) {
     let geo = feature.get('geometry')
@@ -270,15 +342,15 @@ export const mapObject = {
       canvas.height = mag
       ctx.fillStyle = color
       ctx.strokeStyle = strokecolor
-      ctx.lineWidth = size 
+      ctx.lineWidth = size
       ctx.beginPath()
       ctx.arc(mag / 2, mag / 2, (mag / 2) - (size * 2), Math.PI * 2, false)
       ctx.fill();
       ctx.stroke();
 
-      if ( tsunami === 1){
+      if (tsunami === 1) {
         ctx.fillStyle = `rgba(${255},${255},${0},${opac})`
-        this.drawRect(ctx,(mag / 2) - 10, (mag / 2) - 10, 20, 20, true, false  )
+        this.drawRect(ctx, (mag / 2) - 10, (mag / 2) - 10, 20, 20, true, false)
       }
 
 

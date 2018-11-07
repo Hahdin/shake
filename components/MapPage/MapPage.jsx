@@ -14,6 +14,7 @@ export class MapPage extends Component {
       sourceMap: '2', 
       showLabels: false,
       spyTerrain: false,
+      showGauge: false,
     }
   }
   async componentDidMount() {
@@ -49,6 +50,7 @@ export class MapPage extends Component {
       sourceMap: this.state.sourceMap,
       showLabels: this.state.showLabels,
       spyTerrain: this.state.spyTerrain,
+      showGauge: this.state.showGauge,
     }
     this.state.gui.add(controller, 'heatmap', 0, 1).name('Use Heatmap').onChange(async (value) => {
       try{if (this.state.heatmap === value) return
@@ -95,16 +97,24 @@ export class MapPage extends Component {
       catch(e){ Promise.reject(e)}
     })
     this.state.gui.add(controller, 'spyTerrain', 0, 1).name('Spy Terrain').onChange( (value) => {
-      try{if (this.state.spyTerrain === value) return
+      if (this.state.spyTerrain === value) return
       this.state.spyTerrain = value
       //this.state.map.spyTerrain = value
       this.state.map.toggleSpy(value)
       this.setState({
         spyTerrain: value,
-      })}
-      catch(e){ Promise.reject(e)}
+      })
     })
-}
+    this.state.gui.add(controller, 'showGauge', 0, 1).name('Gauge').onChange( (value) => {
+      if (this.state.showGauge === value) return
+      this.state.showGauge = value
+      this.state.map.showGauge = value
+      this.state.map.switchLayer('VECTOR')
+      this.setState({
+        showGauge: value,
+      })
+    })
+  }
   start() {
     this.timer = setInterval(() => {
       this.state.map.loadInfo()
