@@ -61,8 +61,8 @@ export const mapObject = {
       //Fix up data
       let fixed = {
         features: [],
-        bbox: [...jsResult.bbox],
-        metadata: { ...jsResult.metadata },
+        bbox:jsResult.bbox ? [...jsResult.bbox] : [],
+        metadata:jsResult.metadata ? { ...jsResult.metadata } : {},
         type: jsResult.type,
       }
       jsResult.features.forEach(feature => {
