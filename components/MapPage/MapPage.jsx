@@ -129,7 +129,8 @@ export class MapPage extends Component {
   }
   start() {
     this.timer = setInterval(() => {
-      this.state.map.loadInfo()
+      this.state.map.switchData(this.state.map.type)
+      this.state.map.switchLayer('VECTOR')
       this.setState({
         lastRefresh: Date(),
       })
