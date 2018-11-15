@@ -15,6 +15,7 @@ export class MapPage extends Component {
       showLabels: false,
       spyTerrain: false,
       showGauge: false,
+      magThreshhold: 2.0,
     }
   }
   async componentDidMount() {
@@ -51,6 +52,7 @@ export class MapPage extends Component {
       showLabels: this.state.showLabels,
       spyTerrain: this.state.spyTerrain,
       showGauge: this.state.showGauge,
+      magThreshhold: this.state.magThreshhold,
     }
     this.state.gui.add(controller, 'heatmap', 0, 1).name('Use Heatmap').onChange(async (value) => {
       try{if (this.state.heatmap === value) return
@@ -103,6 +105,16 @@ export class MapPage extends Component {
       this.state.map.toggleSpy(value)
       this.setState({
         spyTerrain: value,
+      })
+    })
+    this.state.gui.add(controller, 'magThreshhold', 0, 8).step(.1).name('Hide below Mag.').onChange( async (value) => {
+      if (this.state.magThreshhold === value) return
+      this.state.magThreshhold = value
+      this.state.map.magThreshhold = value
+      await this.state.map.switchData(this.state.map.type)
+      this.state.map.switchLayer('VECTOR')
+      this.setState({
+        magThreshhold: value,
       })
     })
     this.state.gui.add(controller, 'showGauge', 0, 1).name('Gauge').onChange( (value) => {

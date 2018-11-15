@@ -23,6 +23,7 @@ export const mapObject = {
   mousePos: null,
   spyTerrain: false,
   showGauge: false,
+  magThreshhold: 2.0,
 
   async create({ ...args }) {
 
@@ -66,11 +67,10 @@ export const mapObject = {
         type: jsResult.type,
       }
       jsResult.features.forEach(feature => {
-        if (parseFloat(feature.properties.mag) < 0) return
+        if (parseFloat(feature.properties.mag) < this.magThreshhold) return
         fixed.features = fixed.features.concat(feature)
       })
-      this.rawData = fixed
-      return jsResult
+      return fixed
     }
     catch (e) { Promise.reject(e) }
   },
@@ -286,11 +286,12 @@ export const mapObject = {
     return style
   },
   styleEarthquakes(feature) {
+    let mag = parseFloat(feature.get('mag'))
     let geo = feature.get('geometry')
     let depth = geo.flatCoordinates[2]
     //normalize
     let size = depth / 100
-    let mag = parseFloat(feature.get('mag'))
+
     let time = parseFloat(feature.get('time'))
     let tsunami = parseInt(feature.get('tsunami'))
     let _date = new Date(time)
